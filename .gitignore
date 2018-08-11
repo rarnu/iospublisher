@@ -1,0 +1,6 @@
+.DS_store
+lib/
+*.ppu
+*.o
+*.ctps
+

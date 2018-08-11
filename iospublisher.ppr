@@ -1,0 +1,238 @@
+(*
+Parameters:
+  1: ProjectName
+  2: SchemaName
+  3: EnableBitcode(0 = false, 1 = true)
+  4: AppStore Account
+  5: AppStore Password
+*)
+
+program iospublisher;
+
+{$mode objfpc}{$H+}
+
+uses
+  cthreads, Classes, sysutils, BaseUnix, process;
+
+const
+  BUFSIZE = 1024;
+
+procedure innerRunCmd(cmd: string; params: TStringList);
+var
+  p: TProcess;
+  byteRead: LongInt;
+  buf: array[0..BUFSIZE - 1] of Byte;
+  outstr: string;
+begin
+  p := TProcess.Create(nil);
+  p.Executable:= cmd;
+  p.Parameters.Assign(params);
+  p.Options:= [poUsePipes];
+  p.Execute;
+  while (True) do begin
+    byteRead:= p.Output.Read(buf, BUFSIZE);
+    if (byteRead = 0) then Break;
+    SetLength(outstr, byteRead);
+    Move(buf[0], outstr[1], byteRead);
+    Write(outstr);
+  end;
+  p.Free;
+end;
+
+function getWorkspace(): string;
+var
+  src: TSearchRec;
+  path: string;
+  ret: string = '';
+begin
+  path := GetCurrentDir;
+  if (not path.EndsWith('/')) then path += '/';
+  if (FindFirst(path + '*.*', faAnyFile, src) = 0) then begin
+    repeat
+      if (src.Name = '.') or (src.Name = '..') then Continue;
+      if (string(src.Name).EndsWith('.xcworkspace')) then begin
+        ret := path + src.Name;
+        Break;
+      end;
+    until FindNext(src) <> 0;
+    FindClose(src);
+  end;
+  Exit(ret);
+end;
+
+function isUnderProjectPath(): Boolean;
+var
+  path: string;
+  src: TSearchRec;
+  ret: Boolean = False;
+begin
+  path := GetCurrentDir;
+  if (not path.EndsWith('/')) then path += '/';
+  if (FindFirst(path + '*.*', faAnyFile, src) = 0) then begin
+    repeat
+      if (src.Name = '.') or (src.Name = '..') then Continue;
+      if (string(src.Name).EndsWith('.xcworkspace')) or (string(src.Name).EndsWith('.xcodeproj')) then begin
+        ret := True;
+        Break;
+      end;
+    until FindNext(src) <> 0;
+    FindClose(src);
+  end;
+  Exit(ret);
+end;
+
+procedure generatePlist(ABitcode: Boolean);
+var
+  path: string;
+begin
+  path := GetCurrentDir;
+  if (not path.EndsWith('/')) then path += '/';
+  path += 'export.plist';
+  with TStringList.Create do begin
+    Clear;
+    Add('<?xml version="1.0" encoding="UTF-8"?>');
+    Add('<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">');
+    Add('<plist version="1.0">');
+    Add('    <dict>');
+    Add('        <key>method</key>');
+    Add('        <string>app-store</string>');
+    Add('        <key>uploadBitcode</key>');
+    if (ABitcode) then Add('        <true/>') else Add('        <false/>');
+    Add('        <key>uploadSymbols</key>');
+    Add('        <true/>');
+    Add('    </dict>');
+    Add('</plist>');
+    SaveToFile(path);
+    Free;
+  end;
+end;
+
+procedure writeHelp();
+begin
+  WriteLn('Usage: iospublisher');
+  WriteLn('    iospublisher <project name> <schema name> <enable bitcode> <appstore account> <appstore password>');
+  WriteLn('    -- project name: your iOS project name');
+  WriteLn('    -- schema name: schema name in the project');
+  WriteLn('    -- enable bitcode or not: must be 0 or 1, 0 for disabled and 1 for enabled');
+  WriteLn('    -- account for login into AppStore');
+  WriteLn('    -- password for login into AppStore');
+  WriteLn('');
+end;
+
+var
+  currDir: string;
+  ipaPath: string;
+
+  // env
+  projectPath: string;
+  projectName: string;
+  schemaName: string;
+  buildPath: string;
+  plistPath: string;
+
+  params: TStringList;
+  altoolPath: string;
+
+  userName: string;
+  userPass: string;
+begin
+  if (not isUnderProjectPath()) then begin
+    WriteLn('iOS Pusblisher must be run under an iOS project.');
+    Exit;
+  end;
+
+  if (ParamCount <> 5) then begin
+    writeHelp();
+    Exit;
+  end;
+
+  currDir:= GetCurrentDir;
+  if (not currDir.EndsWith('/')) then currDir += '/';
+  ipaPath:= currDir + 'IPADIR/';
+  if (not DirectoryExists(ipaPath)) then ForceDirectories(ipaPath);
+
+  projectPath:= GetCurrentDir;
+  projectName:= ParamStr(1);
+  schemaName:= ParamStr(2);
+  buildPath:= projectPath + '/build';
+  plistPath:= projectPath + '/export.plist';
+  ipaPath:= projectPath + '/IPADIR';
+
+  generatePlist(ParamStr(3) = '1');
+  userName:= ParamStr(4);
+  userPass:= ParamStr(5);
+
+  params := TStringList.Create;
+  // clean
+  params.Clear;
+  params.Add('clean');
+  params.Add('-configuration');
+  params.Add('Release');
+  params.Add('-quiet');
+  innerRunCmd('xcodebuild', params);
+
+  // compile project
+  params.Clear;
+  params.Add('archive');
+  params.Add('-workspace');
+  params.Add(getWorkspace());
+  params.Add('-scheme');
+  params.Add(schemaName);
+  params.Add('-configuration');
+  params.Add('Release');
+  params.Add('-archivePath');
+  params.Add(buildPath + '/' + projectName + '.xcarchive');
+  params.Add('-quiet');
+  innerRunCmd('xcodebuild', params);
+
+  // build ipa
+  params.Clear;
+  params.Add('-exportArchive');
+  params.Add('-archivePath');
+  params.Add(buildPath + '/' + projectName + '.xcarchive');
+  params.Add('-configuration');
+  params.Add('Release');
+  params.Add('-exportPath');
+  params.Add(ipaPath);
+  params.Add('-exportOptionsPlist');
+  params.Add(plistPath);
+  params.Add('-quiet');
+  innerRunCmd('xcodebuild', params);
+
+
+  altoolPath := '/Applications/Xcode.app/Contents/Applications/Application Loader.app/Contents/Frameworks/ITunesSoftwareService.framework/Versions/A/Support/altool';
+
+  // validate
+  params.Clear;
+  params.Add('--validate-app');
+  params.Add('-f');
+  params.Add(ipaPath + '/' + schemaName + '.ipa');
+  params.Add('-u');
+  params.Add(userName);
+  params.Add('-p');
+  params.Add(userPass);
+  params.Add('-t');
+  params.Add('ios');
+  params.Add('--output-format');
+  params.Add('xml');
+  innerRunCmd(altoolPath, params);
+
+  // upload
+  params.Clear;
+  params.Add('--upload-app');
+  params.Add('-f');
+  params.Add(ipaPath + '/' + schemaName + '.ipa');
+  params.Add('-u');
+  params.Add(userName);
+  params.Add('-p');
+  params.Add(userPass);
+  params.Add('-t');
+  params.Add('ios');
+  params.Add('--output-format');
+  params.Add('xml');
+  innerRunCmd(altoolPath, params);
+
+  params.Free;
+
+end.
+
