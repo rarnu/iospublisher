@@ -19,7 +19,7 @@ $ iospublisher SampleProject SampleSchema 1 user password
 ```
 1: 项目名称
 2: 要编译的项目内 Schema 名称
-3: 是否启用 bitcode，0为不启用，1这为启用
+3: 是否启用 bitcode，0为不启用，1为启用
 4: 用于上传到AppStore的帐号
 5: 用于上传到AppStore的密码
 ```
