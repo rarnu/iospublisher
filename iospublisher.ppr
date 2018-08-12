@@ -12,17 +12,18 @@ program iospublisher;
 {$mode objfpc}{$H+}
 
 uses
-  cthreads, Classes, sysutils, BaseUnix, process;
+  cthreads, Classes, sysutils, process;
 
 const
   BUFSIZE = 1024;
+  ALTOOLPATH = '/Applications/Xcode.app/Contents/Applications/Application Loader.app/Contents/Frameworks/ITunesSoftwareService.framework/Versions/A/Support/altool';
 
 procedure innerRunCmd(cmd: string; params: TStringList);
 var
   p: TProcess;
   byteRead: LongInt;
   buf: array[0..BUFSIZE - 1] of Byte;
-  outstr: string;
+  outstr: string = '';
 begin
   p := TProcess.Create(nil);
   p.Executable:= cmd;
@@ -107,6 +108,102 @@ begin
   end;
 end;
 
+procedure clean();
+var
+  params: TStringList;
+begin
+  params := TStringList.Create;
+  params.Clear;
+  params.Add('clean');
+  params.Add('-configuration');
+  params.Add('Release');
+  params.Add('-quiet');
+  innerRunCmd('xcodebuild', params);
+  params.Free;
+end;
+
+procedure compileProject(buildPath:string; schemaName: string; projectName: string);
+var
+  params: TStringList;
+begin
+  params := TStringList.Create;
+  params.Clear;
+  params.Add('archive');
+  params.Add('-workspace');
+  params.Add(getWorkspace());
+  params.Add('-scheme');
+  params.Add(schemaName);
+  params.Add('-configuration');
+  params.Add('Release');
+  params.Add('-archivePath');
+  params.Add(buildPath + '/' + projectName + '.xcarchive');
+  params.Add('-quiet');
+  innerRunCmd('xcodebuild', params);
+  params.Free;
+end;
+
+procedure buildIpa(buildPath: string; projectPath: string; projectName: string; ipaPath: string; plistPath: string);
+var
+  params: TStringList;
+begin
+  params := TStringList.Create;
+  params.Clear;
+  params.Add('-exportArchive');
+  params.Add('-archivePath');
+  params.Add(buildPath + '/' + projectName + '.xcarchive');
+  params.Add('-configuration');
+  params.Add('Release');
+  params.Add('-exportPath');
+  params.Add(ipaPath);
+  params.Add('-exportOptionsPlist');
+  params.Add(plistPath);
+  params.Add('-quiet');
+  innerRunCmd('xcodebuild', params);
+  params.Free;
+end;
+
+procedure validateApp(ipaPath: string; schemaName: string; userName: string; userPass: string);
+var
+  params: TStringList;
+begin
+  params := TStringList.Create;
+  params.Clear;
+  params.Add('--validate-app');
+  params.Add('-f');
+  params.Add(ipaPath + '/' + schemaName + '.ipa');
+  params.Add('-u');
+  params.Add(userName);
+  params.Add('-p');
+  params.Add(userPass);
+  params.Add('-t');
+  params.Add('ios');
+  params.Add('--output-format');
+  params.Add('xml');
+  innerRunCmd(ALTOOLPATH, params);
+  params.Free;
+end;
+
+procedure uploadApp(ipaPath: string; schemaName: string; userName: string; userPass: string);
+var
+  params: TStringList;
+begin
+  params := TStringList.Create;
+  params.Clear;
+  params.Add('--upload-app');
+  params.Add('-f');
+  params.Add(ipaPath + '/' + schemaName + '.ipa');
+  params.Add('-u');
+  params.Add(userName);
+  params.Add('-p');
+  params.Add(userPass);
+  params.Add('-t');
+  params.Add('ios');
+  params.Add('--output-format');
+  params.Add('xml');
+  innerRunCmd(ALTOOLPATH, params);
+  params.Free;
+end;
+
 procedure writeHelp();
 begin
   WriteLn('Usage: iospublisher');
@@ -122,17 +219,12 @@ end;
 var
   currDir: string;
   ipaPath: string;
-
   // env
   projectPath: string;
   projectName: string;
   schemaName: string;
   buildPath: string;
   plistPath: string;
-
-  params: TStringList;
-  altoolPath: string;
-
   userName: string;
   userPass: string;
 begin
@@ -148,7 +240,7 @@ begin
 
   currDir:= GetCurrentDir;
   if (not currDir.EndsWith('/')) then currDir += '/';
-  ipaPath:= currDir + 'IPADIR/';
+  ipaPath:= currDir + 'IPADIR';
   if (not DirectoryExists(ipaPath)) then ForceDirectories(ipaPath);
 
   projectPath:= GetCurrentDir;
@@ -156,83 +248,15 @@ begin
   schemaName:= ParamStr(2);
   buildPath:= projectPath + '/build';
   plistPath:= projectPath + '/export.plist';
-  ipaPath:= projectPath + '/IPADIR';
 
   generatePlist(ParamStr(3) = '1');
   userName:= ParamStr(4);
   userPass:= ParamStr(5);
 
-  params := TStringList.Create;
-  // clean
-  params.Clear;
-  params.Add('clean');
-  params.Add('-configuration');
-  params.Add('Release');
-  params.Add('-quiet');
-  innerRunCmd('xcodebuild', params);
-
-  // compile project
-  params.Clear;
-  params.Add('archive');
-  params.Add('-workspace');
-  params.Add(getWorkspace());
-  params.Add('-scheme');
-  params.Add(schemaName);
-  params.Add('-configuration');
-  params.Add('Release');
-  params.Add('-archivePath');
-  params.Add(buildPath + '/' + projectName + '.xcarchive');
-  params.Add('-quiet');
-  innerRunCmd('xcodebuild', params);
-
-  // build ipa
-  params.Clear;
-  params.Add('-exportArchive');
-  params.Add('-archivePath');
-  params.Add(buildPath + '/' + projectName + '.xcarchive');
-  params.Add('-configuration');
-  params.Add('Release');
-  params.Add('-exportPath');
-  params.Add(ipaPath);
-  params.Add('-exportOptionsPlist');
-  params.Add(plistPath);
-  params.Add('-quiet');
-  innerRunCmd('xcodebuild', params);
-
-
-  altoolPath := '/Applications/Xcode.app/Contents/Applications/Application Loader.app/Contents/Frameworks/ITunesSoftwareService.framework/Versions/A/Support/altool';
-
-  // validate
-  params.Clear;
-  params.Add('--validate-app');
-  params.Add('-f');
-  params.Add(ipaPath + '/' + schemaName + '.ipa');
-  params.Add('-u');
-  params.Add(userName);
-  params.Add('-p');
-  params.Add(userPass);
-  params.Add('-t');
-  params.Add('ios');
-  params.Add('--output-format');
-  params.Add('xml');
-  innerRunCmd(altoolPath, params);
-
-  // upload
-  params.Clear;
-  params.Add('--upload-app');
-  params.Add('-f');
-  params.Add(ipaPath + '/' + schemaName + '.ipa');
-  params.Add('-u');
-  params.Add(userName);
-  params.Add('-p');
-  params.Add(userPass);
-  params.Add('-t');
-  params.Add('ios');
-  params.Add('--output-format');
-  params.Add('xml');
-  innerRunCmd(altoolPath, params);
-
-  params.Free;
-
+  clean();
+  compileProject(buildPath, schemaName, projectName);
+  buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
+  validateApp(ipaPath, schemaName, userName, userPass);
+  uploadApp(ipaPath, schemaName, userName, userPass);
 end.
 
