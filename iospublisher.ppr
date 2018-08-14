@@ -40,7 +40,7 @@ begin
   p.Free;
 end;
 
-function getWorkspace(): string;
+function getWorkspace(AProjectName: string): string;
 var
   src: TSearchRec;
   path: string;
@@ -57,6 +57,9 @@ begin
       end;
     until FindNext(src) <> 0;
     FindClose(src);
+  end;
+  if (ret = '') then begin
+    ret := AProjectName + '.xcodeproj';
   end;
   Exit(ret);
 end;
@@ -125,12 +128,19 @@ end;
 procedure compileProject(buildPath:string; schemaName: string; projectName: string; AQuiet: Boolean = True);
 var
   params: TStringList;
+  ws: string;
 begin
   params := TStringList.Create;
   params.Clear;
   params.Add('archive');
-  params.Add('-workspace');
-  params.Add(getWorkspace());
+  ws := getWorkspace(projectName);
+  if (ws.EndsWith('.xcodeproj')) then begin
+    params.Add('-project');
+    params.Add(ws);
+  end else begin
+    params.Add('-workspace');
+    params.Add(ws);
+  end;
   params.Add('-scheme');
   params.Add(schemaName);
   params.Add('-configuration');
