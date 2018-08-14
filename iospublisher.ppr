@@ -100,7 +100,7 @@ begin
   end;
 end;
 
-procedure clean(AQuiet: Boolean = True);
+procedure clean();
 var
   params: TStringList;
 begin
@@ -109,12 +109,11 @@ begin
   params.Add('clean');
   params.Add('-configuration');
   params.Add('Release');
-  if (AQuiet) then params.Add('-quiet');
   innerRunCmd('xcodebuild', params);
   params.Free;
 end;
 
-procedure compileProject(buildPath:string; work: string; schemaName: string; projectName: string; AQuiet: Boolean = True);
+procedure compileProject(buildPath:string; work: string; schemaName: string; projectName: string);
 var
   params: TStringList;
 begin
@@ -134,12 +133,11 @@ begin
   params.Add('Release');
   params.Add('-archivePath');
   params.Add(buildPath + '/' + projectName + '.xcarchive');
-  if (AQuiet) then params.Add('-quiet');
   innerRunCmd('xcodebuild', params);
   params.Free;
 end;
 
-procedure buildIpa(buildPath: string; projectPath: string; projectName: string; ipaPath: string; plistPath: string; AQuiet: Boolean = True);
+procedure buildIpa(buildPath: string; projectPath: string; projectName: string; ipaPath: string; plistPath: string);
 var
   params: TStringList;
 begin
@@ -154,7 +152,6 @@ begin
   params.Add(ipaPath);
   params.Add('-exportOptionsPlist');
   params.Add(plistPath);
-  if (AQuiet) then params.Add('-quiet');
   innerRunCmd('xcodebuild', params);
   params.Free;
 end;
@@ -203,8 +200,8 @@ end;
 
 procedure writeHelp();
 begin
-  WriteLn('Usage: iospublisher (v1.0.3)');
-  WriteLn('    iospublisher init/build');
+  WriteLn('Usage: iospublisher (v1.0.4)');
+  WriteLn('    iospublisher init/build <upload>');
   WriteLn('');
   WriteLn('    you must init a project first and fill all parameters in iospub.cfg');
   WriteLn('');
@@ -226,6 +223,7 @@ end;
 var
 
   cmd: string;
+  up: string;
   cfg: TIniFile;
 
   currDir: string;
@@ -239,14 +237,13 @@ var
   plistPath: string;
   userName: string;
   userPass: string;
-  verbose: Boolean;
 begin
   if (not isUnderProjectPath()) then begin
     WriteLn('iOS Pusblisher must be run under an iOS project.');
     Exit;
   end;
 
-  if (ParamCount <> 1) then begin
+  if (ParamCount <> 1) and (ParamCount <> 2) then begin
     writeHelp();
     Exit;
   end;
@@ -281,20 +278,18 @@ begin
     Exit;
   end;
 
+  up:= ParamStr(2);
   cfg := TIniFile.Create('iospub.cfg');
-
   currDir:= GetCurrentDir;
   if (not currDir.EndsWith('/')) then currDir += '/';
   ipaPath:= currDir + 'IPADIR';
   if (not DirectoryExists(ipaPath)) then ForceDirectories(ipaPath);
-
   projectFile:= cfg.ReadString('Config', 'ProjectFile', '');
   projectPath:= GetCurrentDir;
   projectName:= cfg.ReadString('Config', 'ProjectName', '');
   schemaName:= cfg.ReadString('Config', 'SchemeName', '');
   buildPath:= projectPath + '/build';
   plistPath:= projectPath + '/export.plist';
-
   generatePlist(
     cfg.ReadInteger('Config', 'EnableBitcode', 0) = 1,
     cfg.ReadString('Config', 'ProvisionKey', ''),
@@ -302,15 +297,16 @@ begin
     cfg.ReadString('Config', 'Certificate', ''),
     cfg.ReadString('Config', 'TeamID', '')
   );
-
   userName:= cfg.ReadString('Config', 'AppStoreAccount', '');
   userPass:= cfg.ReadString('Config', 'AppStorePassword', '');
-  verbose := not (ParamStr(6) = '-v');
+  cfg.Free;
 
-  clean(verbose);
-  compileProject(buildPath, projectFile, schemaName, projectName, verbose);
-  buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath, verbose);
+  clean();
+  compileProject(buildPath, projectFile, schemaName, projectName);
+  buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
   validateApp(ipaPath, schemaName, userName, userPass);
-  uploadApp(ipaPath, schemaName, userName, userPass);
+  if (up = 'upload') then begin
+    uploadApp(ipaPath, schemaName, userName, userPass);
+  end;
 end.
 
