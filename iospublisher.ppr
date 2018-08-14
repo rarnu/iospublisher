@@ -28,7 +28,7 @@ begin
   p := TProcess.Create(nil);
   p.Executable:= cmd;
   p.Parameters.Assign(params);
-  p.Options:= [poUsePipes];
+  p.Options:= [poUsePipes, poStderrToOutPut];
   p.Execute;
   while (True) do begin
     byteRead:= p.Output.Read(buf, BUFSIZE);
@@ -108,7 +108,7 @@ begin
   end;
 end;
 
-procedure clean();
+procedure clean(AQuiet: Boolean = True);
 var
   params: TStringList;
 begin
@@ -117,12 +117,12 @@ begin
   params.Add('clean');
   params.Add('-configuration');
   params.Add('Release');
-  params.Add('-quiet');
+  if (AQuiet) then params.Add('-quiet');
   innerRunCmd('xcodebuild', params);
   params.Free;
 end;
 
-procedure compileProject(buildPath:string; schemaName: string; projectName: string);
+procedure compileProject(buildPath:string; schemaName: string; projectName: string; AQuiet: Boolean = True);
 var
   params: TStringList;
 begin
@@ -137,12 +137,12 @@ begin
   params.Add('Release');
   params.Add('-archivePath');
   params.Add(buildPath + '/' + projectName + '.xcarchive');
-  params.Add('-quiet');
+  if (AQuiet) then params.Add('-quiet');
   innerRunCmd('xcodebuild', params);
   params.Free;
 end;
 
-procedure buildIpa(buildPath: string; projectPath: string; projectName: string; ipaPath: string; plistPath: string);
+procedure buildIpa(buildPath: string; projectPath: string; projectName: string; ipaPath: string; plistPath: string; AQuiet: Boolean = True);
 var
   params: TStringList;
 begin
@@ -157,7 +157,7 @@ begin
   params.Add(ipaPath);
   params.Add('-exportOptionsPlist');
   params.Add(plistPath);
-  params.Add('-quiet');
+  if (AQuiet) then params.Add('-quiet');
   innerRunCmd('xcodebuild', params);
   params.Free;
 end;
@@ -227,13 +227,14 @@ var
   plistPath: string;
   userName: string;
   userPass: string;
+  verbose: Boolean;
 begin
   if (not isUnderProjectPath()) then begin
     WriteLn('iOS Pusblisher must be run under an iOS project.');
     Exit;
   end;
 
-  if (ParamCount <> 5) then begin
+  if (ParamCount <> 5) and (ParamCount <> 6) then begin
     writeHelp();
     Exit;
   end;
@@ -252,10 +253,11 @@ begin
   generatePlist(ParamStr(3) = '1');
   userName:= ParamStr(4);
   userPass:= ParamStr(5);
+  verbose := not (ParamStr(6) = '-v');
 
-  clean();
-  compileProject(buildPath, schemaName, projectName);
-  buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
+  clean(verbose);
+  compileProject(buildPath, schemaName, projectName, verbose);
+  buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath, verbose);
   validateApp(ipaPath, schemaName, userName, userPass);
   uploadApp(ipaPath, schemaName, userName, userPass);
 end.
