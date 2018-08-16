@@ -28,7 +28,7 @@ $ iospublisher build pgyer
 
 - - -
 
-为了更简便的完成配置，可以使用 GUI 工具，编译后直接双击使用即可
+为了更简便的完成配置，可以使用 GUI 工具，编译后直接双击使用即可
 
 ```
 $ fpccmd M iospubgui.ppr C
