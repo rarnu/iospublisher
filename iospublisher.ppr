@@ -229,7 +229,7 @@ end;
 
 procedure writeHelp();
 begin
-  WriteLn('Usage: iospublisher (v1.0.4)');
+  WriteLn('Usage: iospublisher (v1.0.5) / Scarlett');
   WriteLn('    iospublisher init/build <upload> [appstore/pgyer]');
   WriteLn('');
   WriteLn('    you must init a project first and fill all parameters in iospub.cfg');
