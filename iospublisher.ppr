@@ -12,7 +12,7 @@ program iospublisher;
 {$mode objfpc}{$H+}
 
 uses
-  cthreads, Classes, sysutils, process, IniFiles;
+  cthreads, Classes, sysutils, process, IniFiles, fphttpclient;
 
 const
   BUFSIZE = 1024;
@@ -198,10 +198,39 @@ begin
   params.Free;
 end;
 
+procedure uploadPgyer(ipaPath: string; ukey: string; apikey: string);
+const
+  UPLOAD_URL = 'http://www.pgyer.com/apiv1/app/upload';
+var
+  params: TStringList;
+  ss: TStringStream;
+  logstr: string;
+begin
+  params := TStringList.Create;
+  params.Add(Format('uKey=%s', [ukey]));
+  params.Add(Format('_api_key=%s', [apikey]));
+  params.Add('publishRange=2');
+  ss := TStringStream.Create('');
+  with TFPHTTPClient.Create(nil) do begin
+    try
+      FileFormPost(UPLOAD_URL, params, 'file', ipaPath, ss);
+    except
+      on e: Exception do begin
+        WriteLn('Upload error: ' + e.Message);
+      end;
+    end;
+    Free;
+  end;
+  logstr:= ss.DataString;
+  WriteLn(logstr);
+  ss.Free;
+  params.Free;
+end;
+
 procedure writeHelp();
 begin
   WriteLn('Usage: iospublisher (v1.0.4)');
-  WriteLn('    iospublisher init/build <upload>');
+  WriteLn('    iospublisher init/build <upload> [appstore/pgyer]');
   WriteLn('');
   WriteLn('    you must init a project first and fill all parameters in iospub.cfg');
   WriteLn('');
@@ -217,6 +246,8 @@ begin
   WriteLn('        TeamID=1234567890');
   WriteLn('        AppStoreAccount=apple@apple.com');
   WriteLn('        AppStorePassword=password');
+  WriteLn('        PgyerUKey=uKey');
+  WriteLn('        PgyerApiKey=apiKey');
   WriteLn('');
 end;
 
@@ -237,6 +268,8 @@ var
   plistPath: string;
   userName: string;
   userPass: string;
+  ukey: string;
+  apikey: string;
 begin
   if (not isUnderProjectPath()) then begin
     WriteLn('iOS Pusblisher must be run under an iOS project.');
@@ -267,6 +300,8 @@ begin
       Add('TeamID=');
       Add('AppStoreAccount=');
       Add('AppStorePassword=');
+      Add('PgyerUKey=');
+      Add('PgyerApiKey=');
       SaveToFile('iospub.cfg');
       Free;
     end;
@@ -299,14 +334,18 @@ begin
   );
   userName:= cfg.ReadString('Config', 'AppStoreAccount', '');
   userPass:= cfg.ReadString('Config', 'AppStorePassword', '');
+  ukey:= cfg.ReadString('Config', 'PgyerUKey', '');
+  apikey:= cfg.ReadString('Config', 'PgyerApiKey', '');
   cfg.Free;
 
   clean();
   compileProject(buildPath, projectFile, schemaName, projectName);
   buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
   validateApp(ipaPath, schemaName, userName, userPass);
-  if (up = 'upload') then begin
+  if (up = 'appstore') then begin
     uploadApp(ipaPath, schemaName, userName, userPass);
+  end else if (up = 'pgyer') then begin
+    uploadPgyer(ipaPath, ukey, apikey);
   end;
 end.
 
