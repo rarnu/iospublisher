@@ -5,9 +5,13 @@
     <General>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <Title Value="iospubgui"/>
+      <Title Value="iosgui"/>
+      <Scaled Value="True"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
+      <XPManifest>
+        <DpiAware Value="True"/>
+      </XPManifest>
       <Icon Value="0"/>
     </General>
     <BuildModes Count="1">
@@ -18,9 +22,7 @@
     </PublishOptions>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="1">
-        <Mode0 Name="default"/>
-      </Modes>
+      <Modes Count="0"/>
     </RunParams>
     <RequiredPackages Count="1">
       <Item1>
@@ -29,11 +31,13 @@
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
-        <Filename Value="iospubgui.ppr"/>
+        <Filename Value="iosgui.ppr"/>
+        <FRMtype Value="0"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="frmmain.pas"/>
+        <Filename Value="frmMain.pas"/>
+        <FRMtype Value="0"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="FormMain"/>
         <HasResources Value="True"/>
@@ -44,7 +48,7 @@
   <CompilerOptions>
     <Version Value="11"/>
     <Target>
-      <Filename Value="iospubgui"/>
+      <Filename Value="iosgui"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>

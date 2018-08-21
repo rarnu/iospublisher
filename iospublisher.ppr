@@ -220,7 +220,7 @@ end;
 
 procedure writeHelp();
 begin
-  WriteLn('Usage: iospublisher (v1.0.6) / Scarlett');
+  WriteLn('Usage: iospublisher (v1.0.7) / Scarlett');
   WriteLn('    iospublisher init/build <upload> [appstore/pgyer]');
   WriteLn('');
   WriteLn('    you must init a project first and fill all parameters in iospub.cfg');
@@ -248,6 +248,12 @@ begin
   WriteLn('        TeamID=1234567890');
   WriteLn('        UKey=uKey');
   WriteLn('        ApiKey=apiKey');
+  WriteLn('');
+  WriteLn('        [Enterprise]');
+  WriteLn('        ProvisionKey=ProvisionKey');
+  WriteLn('        ProvisionValue=ProvisionValue');
+  WriteLn('        Certificate=iPhone Distribution');
+  WriteLn('        TeamID=1234567890');
   WriteLn('');
 end;
 
@@ -311,6 +317,12 @@ begin
       Add('UKey=');
       Add('ApiKey=');
       Add('');
+      Add('[Enterprise]');
+      Add('ProvisionKey=');
+      Add('ProvisionValue=');
+      Add('Certificate=');
+      Add('TeamID=');
+      Add('');
       SaveToFile('iospub.cfg');
       Free;
     end;
@@ -364,6 +376,17 @@ begin
     compileProject(buildPath, projectFile, schemaName, projectName);
     buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
     uploadPgyer(ipaPath, ukey, apikey);
+  end else if (up = 'enterprise') then begin
+    generatePlist(
+      cfg.ReadInteger('Common', 'EnableBitcode', 0) = 1,
+      cfg.ReadString('Enterprise', 'ProvisionKey', ''),
+      cfg.ReadString('Enterprise', 'ProvisionValue', ''),
+      cfg.ReadString('Enterprise', 'Certificate', ''),
+      cfg.ReadString('Enterprise', 'TeamID', '')
+    );
+    clean();
+    compileProject(buildPath, projectFile, schemaName, projectName);
+    buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
   end;
 
   cfg.Free;
