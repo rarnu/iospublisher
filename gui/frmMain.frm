@@ -1,12 +1,12 @@
 object FormMain: TFormMain
   Left = 47
-  Height = 636
+  Height = 680
   Top = 270
   Width = 481
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
-  Caption = 'iOS Publisher GUI Config 1.0.7'
-  ClientHeight = 636
+  Caption = 'iOS Publisher GUI Config 1.0.8'
+  ClientHeight = 680
   ClientWidth = 481
   Color = clWhite
   OnCreate = FormCreate
@@ -226,7 +226,7 @@ object FormMain: TFormMain
   end
   object PageControl1: TPageControl
     Left = 8
-    Height = 337
+    Height = 381
     Top = 291
     Width = 465
     ActivePage = TabSheet1
@@ -236,7 +236,7 @@ object FormMain: TFormMain
     TabOrder = 2
     object TabSheet1: TTabSheet
       Caption = 'AppStore'
-      ClientHeight = 306
+      ClientHeight = 350
       ClientWidth = 455
       object Panel5: TPanel
         Left = 0
@@ -443,7 +443,7 @@ object FormMain: TFormMain
     end
     object TabSheet2: TTabSheet
       Caption = 'Pgyer'
-      ClientHeight = 306
+      ClientHeight = 350
       ClientWidth = 455
       object Panel11: TPanel
         Left = 0
@@ -647,10 +647,42 @@ object FormMain: TFormMain
           TextHint = 'in exportOptions.plist [teamID]'
         end
       end
+      object Panel21: TPanel
+        Left = 0
+        Height = 46
+        Top = 276
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 6
+        object Label21: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Autosign'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object chkPgyerAuto: TCheckBox
+          Left = 116
+          Height = 46
+          Top = 0
+          Width = 32
+          Align = alLeft
+          Caption = '  '
+          TabOrder = 0
+        end
+      end
     end
     object TabSheet3: TTabSheet
       Caption = 'Enterprise'
-      ClientHeight = 306
+      ClientHeight = 350
       ClientWidth = 455
       object Panel17: TPanel
         Left = 0
@@ -786,6 +818,38 @@ object FormMain: TFormMain
           BorderSpacing.Around = 8
           TabOrder = 0
           TextHint = 'in exportOptions.plist [teamID]'
+        end
+      end
+      object Panel22: TPanel
+        Left = 0
+        Height = 46
+        Top = 184
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 4
+        object Label22: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Autosign'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object chkEnterpriseAuto: TCheckBox
+          Left = 116
+          Height = 46
+          Top = 0
+          Width = 32
+          Align = alLeft
+          Caption = '  '
+          TabOrder = 0
         end
       end
     end

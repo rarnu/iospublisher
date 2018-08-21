@@ -17,7 +17,9 @@ type
     btnProjFile: TButton;
     btnProjName: TButton;
     btnSave: TButton;
+    chkPgyerAuto: TCheckBox;
     chkBitcode: TCheckBox;
+    chkEnterpriseAuto: TCheckBox;
     edtEnterpriseCertificate: TEdit;
     edtEnterpriseProvisionKey: TEdit;
     edtEnterpriseProvisionValue: TEdit;
@@ -52,6 +54,8 @@ type
     Label19: TLabel;
     Label2: TLabel;
     Label20: TLabel;
+    Label21: TLabel;
+    Label22: TLabel;
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
@@ -74,6 +78,8 @@ type
     Panel19: TPanel;
     Panel2: TPanel;
     Panel20: TPanel;
+    Panel21: TPanel;
+    Panel22: TPanel;
     Panel3: TPanel;
     Panel4: TPanel;
     Panel5: TPanel;
@@ -119,13 +125,13 @@ const
   KEY_PROVISIONVALUE = 'ProvisionValue';
   KEY_CERTIFICATE = 'Certificate';
   KEY_TEAMID = 'TeamID';
+  KEY_AUTOSIGN = 'Auto';
 
   KEY_APPSTORE_ACCOUNT = 'Account';
   KEY_APPSTORE_PASSWORD = 'Password';
 
   KEY_PGYERUKEY = 'UKey';
   KEY_PGYERAPIKEY = 'ApiKey';
-
 
 { TFormMain }
 
@@ -222,12 +228,14 @@ begin
   ini.WriteString(SEC_PGYER, KEY_TEAMID, edtPgyerTeamID.Text);
   ini.WriteString(SEC_PGYER, KEY_PGYERUKEY, edtPgyerUKey.Text);
   ini.WriteString(SEC_PGYER, KEY_PGYERAPIKEY, edtPgyerApiKey.Text);
+  ini.WriteInteger(SEC_PGYER, KEY_AUTOSIGN, ifthen(chkPgyerAuto.Checked, 1, 0));
 
   // enterprise
   ini.WriteString(SEC_ENTERPRISE, KEY_PROVISIONKEY, edtEnterpriseProvisionKey.Text);
   ini.WriteString(SEC_ENTERPRISE, KEY_PROVISIONVALUE, edtEnterpriseProvisionValue.Text);
   ini.WriteString(SEC_ENTERPRISE, KEY_CERTIFICATE, edtEnterpriseCertificate.Text);
   ini.WriteString(SEC_ENTERPRISE, KEY_TEAMID, edtEnterpriseTeamID.Text);
+  ini.WriteInteger(SEC_ENTERPRISE, KEY_AUTOSIGN, ifthen(chkEnterpriseAuto.Checked, 1, 0));
 
   ini.Free;
 end;
@@ -275,12 +283,14 @@ begin
   edtPgyerTeamID.Text:= ini.ReadString(SEC_PGYER, KEY_TEAMID, '');
   edtPgyerUKey.Text:= ini.ReadString(SEC_PGYER, KEY_PGYERUKEY, '');
   edtPgyerApiKey.Text:= ini.ReadString(SEC_PGYER, KEY_PGYERAPIKEY, '');
+  chkPgyerAuto.Checked:= ini.ReadInteger(SEC_PGYER, KEY_AUTOSIGN, 0) = 1;
 
   // enterprise
   edtEnterpriseProvisionKey.Text:= ini.ReadString(SEC_ENTERPRISE, KEY_PROVISIONKEY, '');
   edtEnterpriseProvisionValue.Text:= ini.ReadString(SEC_ENTERPRISE, KEY_PROVISIONVALUE, '');
   edtEnterpriseCertificate.Text:= ini.ReadString(SEC_ENTERPRISE, KEY_CERTIFICATE, '');
   edtEnterpriseTeamID.Text:= ini.ReadString(SEC_ENTERPRISE, KEY_TEAMID, '');
+  chkEnterpriseAuto.Checked:= ini.ReadInteger(SEC_ENTERPRISE, KEY_AUTOSIGN, 0) = 1;
 
   ini.Free;
 end;
