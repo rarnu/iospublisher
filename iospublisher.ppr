@@ -1,12 +1,3 @@
-(*
-Parameters:
-  1: ProjectName
-  2: SchemaName
-  3: EnableBitcode(0 = false, 1 = true)
-  4: AppStore Account
-  5: AppStore Password
-*)
-
 program iospublisher;
 
 {$mode objfpc}{$H+}
@@ -229,25 +220,34 @@ end;
 
 procedure writeHelp();
 begin
-  WriteLn('Usage: iospublisher (v1.0.5) / Scarlett');
+  WriteLn('Usage: iospublisher (v1.0.6) / Scarlett');
   WriteLn('    iospublisher init/build <upload> [appstore/pgyer]');
   WriteLn('');
   WriteLn('    you must init a project first and fill all parameters in iospub.cfg');
   WriteLn('');
   WriteLn('    sample:');
-  WriteLn('        [Config]');
+  WriteLn('');
+  WriteLn('        [Common]');
   WriteLn('        ProjectFile=Sample.xcworkspace');
   WriteLn('        ProjectName=Sample');
   WriteLn('        SchemeName=MySample');
   WriteLn('        EnableBitcode=1');
+  WriteLn('');
+  WriteLn('        [AppStore]');
   WriteLn('        ProvisionKey=ProvisionKey');
   WriteLn('        ProvisionValue=ProvisionValue');
   WriteLn('        Certificate=iPhone Distribution');
   WriteLn('        TeamID=1234567890');
-  WriteLn('        AppStoreAccount=apple@apple.com');
-  WriteLn('        AppStorePassword=password');
-  WriteLn('        PgyerUKey=uKey');
-  WriteLn('        PgyerApiKey=apiKey');
+  WriteLn('        Account=apple@apple.com');
+  WriteLn('        Password=password');
+  WriteLn('');
+  WriteLn('        [Pgyer]');
+  WriteLn('        ProvisionKey=ProvisionKey');
+  WriteLn('        ProvisionValue=ProvisionValue');
+  WriteLn('        Certificate=iPhone Distribution');
+  WriteLn('        TeamID=1234567890');
+  WriteLn('        UKey=uKey');
+  WriteLn('        ApiKey=apiKey');
   WriteLn('');
 end;
 
@@ -289,19 +289,28 @@ begin
 
   if (cmd = 'init') then begin
     with TStringList.Create do begin
-      Add('[Config]');
+      Add('[Common]');
       Add('ProjectFile=');
       Add('ProjectName=');
       Add('SchemeName=');
       Add('EnableBitcode=');
+      Add('');
+      Add('[AppStore]');
       Add('ProvisionKey=');
       Add('ProvisionValue=');
       Add('Certificate=');
       Add('TeamID=');
-      Add('AppStoreAccount=');
-      Add('AppStorePassword=');
-      Add('PgyerUKey=');
-      Add('PgyerApiKey=');
+      Add('Account=');
+      Add('Password=');
+      Add('');
+      Add('[Pgyer]');
+      Add('ProvisionKey=');
+      Add('ProvisionValue=');
+      Add('Certificate=');
+      Add('TeamID=');
+      Add('UKey=');
+      Add('ApiKey=');
+      Add('');
       SaveToFile('iospub.cfg');
       Free;
     end;
@@ -319,33 +328,44 @@ begin
   if (not currDir.EndsWith('/')) then currDir += '/';
   ipaPath:= currDir + 'IPADIR';
   if (not DirectoryExists(ipaPath)) then ForceDirectories(ipaPath);
-  projectFile:= cfg.ReadString('Config', 'ProjectFile', '');
+  projectFile:= cfg.ReadString('Common', 'ProjectFile', '');
   projectPath:= GetCurrentDir;
-  projectName:= cfg.ReadString('Config', 'ProjectName', '');
-  schemaName:= cfg.ReadString('Config', 'SchemeName', '');
+  projectName:= cfg.ReadString('Common', 'ProjectName', '');
+  schemaName:= cfg.ReadString('Common', 'SchemeName', '');
   buildPath:= projectPath + '/build';
   plistPath:= projectPath + '/export.plist';
-  generatePlist(
-    cfg.ReadInteger('Config', 'EnableBitcode', 0) = 1,
-    cfg.ReadString('Config', 'ProvisionKey', ''),
-    cfg.ReadString('Config', 'ProvisionValue', ''),
-    cfg.ReadString('Config', 'Certificate', ''),
-    cfg.ReadString('Config', 'TeamID', '')
-  );
-  userName:= cfg.ReadString('Config', 'AppStoreAccount', '');
-  userPass:= cfg.ReadString('Config', 'AppStorePassword', '');
-  ukey:= cfg.ReadString('Config', 'PgyerUKey', '');
-  apikey:= cfg.ReadString('Config', 'PgyerApiKey', '');
-  cfg.Free;
 
-  clean();
-  compileProject(buildPath, projectFile, schemaName, projectName);
-  buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
-  validateApp(ipaPath, schemaName, userName, userPass);
   if (up = 'appstore') then begin
+    generatePlist(
+      cfg.ReadInteger('Common', 'EnableBitcode', 0) = 1,
+      cfg.ReadString('AppStore', 'ProvisionKey', ''),
+      cfg.ReadString('AppStore', 'ProvisionValue', ''),
+      cfg.ReadString('AppStore', 'Certificate', ''),
+      cfg.ReadString('AppStore', 'TeamID', '')
+    );
+    userName:= cfg.ReadString('AppStore', 'Account', '');
+    userPass:= cfg.ReadString('AppStore', 'Password', '');
+    clean();
+    compileProject(buildPath, projectFile, schemaName, projectName);
+    buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
+    validateApp(ipaPath, schemaName, userName, userPass);
     uploadApp(ipaPath, schemaName, userName, userPass);
   end else if (up = 'pgyer') then begin
+    generatePlist(
+      cfg.ReadInteger('Common', 'EnableBitcode', 0) = 1,
+      cfg.ReadString('Pgyer', 'ProvisionKey', ''),
+      cfg.ReadString('Pgyer', 'ProvisionValue', ''),
+      cfg.ReadString('Pgyer', 'Certificate', ''),
+      cfg.ReadString('Pgyer', 'TeamID', '')
+    );
+    ukey:= cfg.ReadString('Pgyer', 'UKey', '');
+    apikey:= cfg.ReadString('Pgyer', 'ApiKey', '');
+    clean();
+    compileProject(buildPath, projectFile, schemaName, projectName);
+    buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
     uploadPgyer(ipaPath, ukey, apikey);
   end;
+
+  cfg.Free;
 end.
 
