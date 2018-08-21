@@ -233,7 +233,7 @@ begin
   params.Free;
 end;
 
-procedure uploadPgyer(ipaPath: string; ukey: string; apikey: string);
+procedure uploadPgyer(ipaPath: string; schemaName: string; ukey: string; apikey: string);
 const
   UPLOAD_URL = 'http://www.pgyer.com/apiv1/app/upload';
 var
@@ -248,7 +248,7 @@ begin
   ss := TStringStream.Create('');
   with TFPHTTPClient.Create(nil) do begin
     try
-      FileFormPost(UPLOAD_URL, params, 'file', ipaPath, ss);
+      FileFormPost(UPLOAD_URL, params, 'file', ipaPath + '/' + schemaName + '.ipa', ss);
     except
       on e: Exception do begin
         WriteLn('Upload error: ' + e.Message);
@@ -264,8 +264,8 @@ end;
 
 procedure writeHelp();
 begin
-  WriteLn('Usage: iospublisher (v1.0.8) / Scarlett');
-  WriteLn('    iospublisher init/build <upload> [appstore/pgyer]');
+  WriteLn('Usage: iospublisher (v1.0.8.1) / Scarlett');
+  WriteLn('    iospublisher init/build [appstore/pgyer/enterprise]');
   WriteLn('');
   WriteLn('    you must init a project first and fill all parameters in iospub.cfg');
   WriteLn('');
@@ -424,7 +424,7 @@ begin
     clean();
     compileProject(buildPath, projectFile, schemaName, projectName);
     buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
-    uploadPgyer(ipaPath, ukey, apikey);
+    uploadPgyer(ipaPath, schemaName, ukey, apikey);
   end else if (up = 'enterprise') then begin
     generatePlistEnterprise(
       cfg.ReadInteger('Common', 'EnableBitcode', 0) = 1,
