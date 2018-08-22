@@ -24,6 +24,12 @@ $ iospublisher build appstore
 
 ## 发布 ipa 到蒲公英
 $ iospublisher build pgyer
+
+## 发布到 fir.im
+$ iospublisher build fir
+
+## 只打企业包
+$ iospublisher build enterprise
 ```
 
 - - -
