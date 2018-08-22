@@ -1,12 +1,12 @@
 object FormMain: TFormMain
   Left = 47
-  Height = 680
+  Height = 775
   Top = 270
   Width = 481
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
-  Caption = 'iOS Publisher GUI Config 1.0.8'
-  ClientHeight = 680
+  Caption = 'iOS Publisher GUI Config 1.0.9'
+  ClientHeight = 775
   ClientWidth = 481
   Color = clWhite
   OnCreate = FormCreate
@@ -226,7 +226,7 @@ object FormMain: TFormMain
   end
   object PageControl1: TPageControl
     Left = 8
-    Height = 381
+    Height = 476
     Top = 291
     Width = 465
     ActivePage = TabSheet1
@@ -236,7 +236,7 @@ object FormMain: TFormMain
     TabOrder = 2
     object TabSheet1: TTabSheet
       Caption = 'AppStore'
-      ClientHeight = 350
+      ClientHeight = 445
       ClientWidth = 455
       object Panel5: TPanel
         Left = 0
@@ -443,7 +443,7 @@ object FormMain: TFormMain
     end
     object TabSheet2: TTabSheet
       Caption = 'Pgyer'
-      ClientHeight = 350
+      ClientHeight = 445
       ClientWidth = 455
       object Panel11: TPanel
         Left = 0
@@ -682,7 +682,7 @@ object FormMain: TFormMain
     end
     object TabSheet3: TTabSheet
       Caption = 'Enterprise'
-      ClientHeight = 350
+      ClientHeight = 445
       ClientWidth = 455
       object Panel17: TPanel
         Left = 0
@@ -849,6 +849,333 @@ object FormMain: TFormMain
           Width = 32
           Align = alLeft
           Caption = '  '
+          TabOrder = 0
+        end
+      end
+    end
+    object TabSheet4: TTabSheet
+      Caption = 'Fir.im'
+      ClientHeight = 445
+      ClientWidth = 455
+      object Panel23: TPanel
+        Left = 0
+        Height = 46
+        Top = 0
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Panel23'
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 0
+        object Label23: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Provision Key'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object edtFirProvisionKey: TEdit
+          Left = 116
+          Height = 30
+          Top = 8
+          Width = 331
+          Align = alClient
+          BorderSpacing.Around = 8
+          TabOrder = 0
+          TextHint = 'in exportOptions.plist [provisioningProfiles.key]'
+        end
+      end
+      object Panel24: TPanel
+        Left = 0
+        Height = 46
+        Top = 46
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Panel24'
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 1
+        object Label24: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Provision Value'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object edtFirProvisionValue: TEdit
+          Left = 116
+          Height = 30
+          Top = 8
+          Width = 331
+          Align = alClient
+          BorderSpacing.Around = 8
+          TabOrder = 0
+          TextHint = 'in exportOptions.plist [provisioningProfiles.value]'
+        end
+      end
+      object Panel25: TPanel
+        Left = 0
+        Height = 46
+        Top = 92
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Panel25'
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 2
+        object Label25: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Certificate'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object edtFirCertificate: TEdit
+          Left = 116
+          Height = 30
+          Top = 8
+          Width = 331
+          Align = alClient
+          BorderSpacing.Around = 8
+          TabOrder = 0
+          TextHint = 'in exportOptions.plist [signingCertificate]'
+        end
+      end
+      object Panel26: TPanel
+        Left = 0
+        Height = 46
+        Top = 138
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Panel26'
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 3
+        object Label26: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Team ID'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object edtFirTeamID: TEdit
+          Left = 116
+          Height = 30
+          Top = 8
+          Width = 331
+          Align = alClient
+          BorderSpacing.Around = 8
+          TabOrder = 0
+          TextHint = 'in exportOptions.plist [teamID]'
+        end
+      end
+      object Panel27: TPanel
+        Left = 0
+        Height = 46
+        Top = 184
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 4
+        object Label27: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Autosign'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object chkFirAuto: TCheckBox
+          Left = 116
+          Height = 46
+          Top = 0
+          Width = 32
+          Align = alLeft
+          Caption = '  '
+          TabOrder = 0
+        end
+      end
+      object Panel28: TPanel
+        Left = 0
+        Height = 46
+        Top = 230
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Panel28'
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 5
+        object Label28: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Bundle ID'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object edtFirBundleID: TEdit
+          Left = 116
+          Height = 30
+          Top = 8
+          Width = 331
+          Align = alClient
+          BorderSpacing.Around = 8
+          TabOrder = 0
+        end
+      end
+      object Panel29: TPanel
+        Left = 0
+        Height = 46
+        Top = 276
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Panel29'
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 6
+        object Label29: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Info.plist'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object edtFirInfoPlist: TEdit
+          Left = 116
+          Height = 30
+          Top = 8
+          Width = 283
+          Align = alClient
+          BorderSpacing.Around = 8
+          TabOrder = 0
+        end
+        object btnFirInfoPlist: TButton
+          Left = 407
+          Height = 30
+          Top = 8
+          Width = 40
+          Align = alRight
+          BorderSpacing.Around = 8
+          Caption = '...'
+          OnClick = btnFirInfoPlistClick
+          TabOrder = 1
+        end
+      end
+      object Panel30: TPanel
+        Left = 0
+        Height = 46
+        Top = 322
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Panel30'
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 7
+        object Label30: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Icon'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object edtFirIcon: TEdit
+          Left = 116
+          Height = 30
+          Top = 8
+          Width = 283
+          Align = alClient
+          BorderSpacing.Around = 8
+          TabOrder = 0
+        end
+        object btnFirIcon: TButton
+          Left = 407
+          Height = 30
+          Top = 8
+          Width = 40
+          Align = alRight
+          BorderSpacing.Around = 8
+          Caption = '...'
+          OnClick = btnFirIconClick
+          TabOrder = 1
+        end
+      end
+      object Panel31: TPanel
+        Left = 0
+        Height = 46
+        Top = 368
+        Width = 455
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Panel31'
+        ClientHeight = 46
+        ClientWidth = 455
+        TabOrder = 8
+        object Label31: TLabel
+          Left = 8
+          Height = 30
+          Top = 8
+          Width = 100
+          Align = alLeft
+          AutoSize = False
+          BorderSpacing.Around = 8
+          Caption = 'Api Token'
+          Layout = tlCenter
+          ParentColor = False
+        end
+        object edtFirApiToken: TEdit
+          Left = 116
+          Height = 30
+          Top = 8
+          Width = 331
+          Align = alClient
+          BorderSpacing.Around = 8
           TabOrder = 0
         end
       end

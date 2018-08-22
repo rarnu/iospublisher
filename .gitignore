@@ -3,4 +3,8 @@ lib/
 *.ppu
 *.o
 *.ctps
+ppas.sh
+
+
+
 

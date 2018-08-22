@@ -17,13 +17,24 @@ type
     btnProjFile: TButton;
     btnProjName: TButton;
     btnSave: TButton;
+    btnFirInfoPlist: TButton;
+    btnFirIcon: TButton;
+    chkFirAuto: TCheckBox;
     chkPgyerAuto: TCheckBox;
     chkBitcode: TCheckBox;
     chkEnterpriseAuto: TCheckBox;
     edtEnterpriseCertificate: TEdit;
+    edtFirCertificate: TEdit;
     edtEnterpriseProvisionKey: TEdit;
+    edtFirProvisionKey: TEdit;
     edtEnterpriseProvisionValue: TEdit;
+    edtFirProvisionValue: TEdit;
     edtEnterpriseTeamID: TEdit;
+    edtFirTeamID: TEdit;
+    edtFirBundleID: TEdit;
+    edtFirInfoPlist: TEdit;
+    edtFirIcon: TEdit;
+    edtFirApiToken: TEdit;
     edtProjFile: TEdit;
     edtAppStoreTeamID: TEdit;
     edtPgyerProvisionKey: TEdit;
@@ -56,7 +67,16 @@ type
     Label20: TLabel;
     Label21: TLabel;
     Label22: TLabel;
+    Label23: TLabel;
+    Label24: TLabel;
+    Label25: TLabel;
+    Label26: TLabel;
+    Label27: TLabel;
+    Label28: TLabel;
+    Label29: TLabel;
     Label3: TLabel;
+    Label30: TLabel;
+    Label31: TLabel;
     Label4: TLabel;
     Label5: TLabel;
     Label6: TLabel;
@@ -80,7 +100,16 @@ type
     Panel20: TPanel;
     Panel21: TPanel;
     Panel22: TPanel;
+    Panel23: TPanel;
+    Panel24: TPanel;
+    Panel25: TPanel;
+    Panel26: TPanel;
+    Panel27: TPanel;
+    Panel28: TPanel;
+    Panel29: TPanel;
     Panel3: TPanel;
+    Panel30: TPanel;
+    Panel31: TPanel;
     Panel4: TPanel;
     Panel5: TPanel;
     Panel6: TPanel;
@@ -91,6 +120,8 @@ type
     TabSheet2: TTabSheet;
     TabSheet3: TTabSheet;
     TabSheet4: TTabSheet;
+    procedure btnFirIconClick(Sender: TObject);
+    procedure btnFirInfoPlistClick(Sender: TObject);
     procedure btnProjFileClick(Sender: TObject);
     procedure btnProjNameClick(Sender: TObject);
     procedure btnProjPathClick(Sender: TObject);
@@ -115,6 +146,7 @@ const
   SEC_APPSTORE = 'AppStore';
   SEC_PGYER = 'Pgyer';
   SEC_ENTERPRISE = 'Enterprise';
+  SEC_FIR = 'Fir';
 
   KEY_PROJFILE = 'ProjectFile';
   KEY_PROJNAME = 'ProjectName';
@@ -127,11 +159,19 @@ const
   KEY_TEAMID = 'TeamID';
   KEY_AUTOSIGN = 'Auto';
 
+  // appstore
   KEY_APPSTORE_ACCOUNT = 'Account';
   KEY_APPSTORE_PASSWORD = 'Password';
 
+  // pgyer
   KEY_PGYERUKEY = 'UKey';
   KEY_PGYERAPIKEY = 'ApiKey';
+
+  // fir.im
+  KEY_BUNDLEID = 'BundleID';
+  KEY_INFOPLIST = 'InfoPList';
+  KEY_ICON = 'Icon';
+  KEY_APITOKEN = 'ApiToken';
 
 { TFormMain }
 
@@ -180,6 +220,30 @@ begin
     Filter:= 'xcodeproj|*.xcodeproj|xcworkspace|*.xcworkspace|all|*.*';
     if (Execute) then begin
       edtProjFile.Text:= ExtractFileName(FileName);
+    end;
+    Free;
+  end;
+end;
+
+procedure TFormMain.btnFirInfoPlistClick(Sender: TObject);
+begin
+  with TOpenDialog.Create(nil) do begin
+    InitialDir:= FCurrentPath;
+    Filter:= 'plist|*.plist';
+    if (Execute) then begin
+      edtFirInfoPlist.Text:= FileName.Replace(FCurrentPath, '');
+    end;
+    Free;
+  end;
+end;
+
+procedure TFormMain.btnFirIconClick(Sender: TObject);
+begin
+  with TOpenDialog.Create(nil) do begin
+    InitialDir:= FCurrentPath;
+    Filter:= 'png|*.png';
+    if (Execute) then begin
+      edtFirIcon.Text:= FileName.Replace(FCurrentPath, '');
     end;
     Free;
   end;
@@ -237,6 +301,17 @@ begin
   ini.WriteString(SEC_ENTERPRISE, KEY_TEAMID, edtEnterpriseTeamID.Text);
   ini.WriteInteger(SEC_ENTERPRISE, KEY_AUTOSIGN, ifthen(chkEnterpriseAuto.Checked, 1, 0));
 
+  // fir.im
+  ini.WriteString(SEC_FIR, KEY_PROVISIONKEY, edtFirProvisionKey.Text);
+  ini.WriteString(SEC_FIR, KEY_PROVISIONVALUE, edtFirProvisionValue.Text);
+  ini.WriteString(SEC_FIR, KEY_CERTIFICATE, edtFirCertificate.Text);
+  ini.WriteString(SEC_FIR, KEY_TEAMID, edtFirTeamID.Text);
+  ini.WriteInteger(SEC_FIR, KEY_AUTOSIGN, ifthen(chkFirAuto.Checked, 1, 0));
+  ini.WriteString(SEC_FIR, KEY_BUNDLEID, edtFirBundleID.Text);
+  ini.WriteString(SEC_FIR, KEY_INFOPLIST, edtFirInfoPlist.Text);
+  ini.WriteString(SEC_FIR, KEY_ICON, edtFirIcon.Text);
+  ini.WriteString(SEC_FIR, KEY_APITOKEN, edtFirApiToken.Text);
+
   ini.Free;
 end;
 
@@ -291,6 +366,17 @@ begin
   edtEnterpriseCertificate.Text:= ini.ReadString(SEC_ENTERPRISE, KEY_CERTIFICATE, '');
   edtEnterpriseTeamID.Text:= ini.ReadString(SEC_ENTERPRISE, KEY_TEAMID, '');
   chkEnterpriseAuto.Checked:= ini.ReadInteger(SEC_ENTERPRISE, KEY_AUTOSIGN, 0) = 1;
+
+  // fir.im
+  edtFirProvisionKey.Text:= ini.ReadString(SEC_FIR, KEY_PROVISIONKEY, '');
+  edtFirProvisionValue.Text:= ini.ReadString(SEC_FIR, KEY_PROVISIONVALUE, '');
+  edtFirCertificate.Text:= ini.ReadString(SEC_FIR, KEY_CERTIFICATE, '');
+  edtFirTeamID.Text:= ini.ReadString(SEC_FIR, KEY_TEAMID, '');
+  chkFirAuto.Checked:= ini.ReadInteger(SEC_FIR, KEY_AUTOSIGN, 0) = 1;
+  edtFirBundleID.Text:= ini.ReadString(SEC_FIR, KEY_BUNDLEID, '');
+  edtFirInfoPlist.Text:= ini.ReadString(SEC_FIR, KEY_INFOPLIST, '');
+  edtFirIcon.Text:= ini.ReadString(SEC_FIR, KEY_ICON, '');
+  edtFirApiToken.Text:= ini.ReadString(SEC_FIR, KEY_APITOKEN, '');
 
   ini.Free;
 end;
