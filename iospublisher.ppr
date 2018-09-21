@@ -3,431 +3,13 @@ program iospublisher;
 {$mode objfpc}{$H+}
 
 uses
-  cthreads, Classes, sysutils, process, IniFiles, fphttpclient, fpjson, jsonparser, jsonscanner;
-
-const
-  BUFSIZE = 1024;
-  ALTOOLPATH = '/Applications/Xcode.app/Contents/Applications/Application Loader.app/Contents/Frameworks/ITunesSoftwareService.framework/Versions/A/Support/altool';
-
-procedure innerRunCmd(cmd: string; params: TStringList);
-var
-  p: TProcess;
-  byteRead: LongInt;
-  buf: array[0..BUFSIZE - 1] of Byte;
-  outstr: string = '';
-begin
-  p := TProcess.Create(nil);
-  p.Executable:= cmd;
-  p.Parameters.Assign(params);
-  p.Options:= [poUsePipes, poStderrToOutPut];
-  p.Execute;
-  while (True) do begin
-    byteRead:= p.Output.Read(buf, BUFSIZE);
-    if (byteRead = 0) then Break;
-    SetLength(outstr, byteRead);
-    Move(buf[0], outstr[1], byteRead);
-    Write(outstr);
-  end;
-  p.Free;
-end;
-
-function isUnderProjectPath(): Boolean;
-var
-  path: string;
-  src: TSearchRec;
-  ret: Boolean = False;
-begin
-  path := GetCurrentDir;
-  if (not path.EndsWith('/')) then path += '/';
-  if (FindFirst(path + '*.*', faAnyFile, src) = 0) then begin
-    repeat
-      if (src.Name = '.') or (src.Name = '..') then Continue;
-      if (string(src.Name).EndsWith('.xcworkspace')) or (string(src.Name).EndsWith('.xcodeproj')) then begin
-        ret := True;
-        Break;
-      end;
-    until FindNext(src) <> 0;
-    FindClose(src);
-  end;
-  Exit(ret);
-end;
-
-procedure generatePlistEnterprise(ABitcode: Boolean; AProvisionKey: string; AProvisionValue: string; ACertificate: string; ATeamId: string; AAuto: Boolean);
-var
-  path: string;
-begin
-  path := GetCurrentDir;
-  if (not path.EndsWith('/')) then path += '/';
-  path += 'export.plist';
-  with TStringList.Create do begin
-    Clear;
-    Add('<?xml version="1.0" encoding="UTF-8"?>');
-    Add('<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">');
-    Add('<plist version="1.0">');
-    Add('<dict>');
-    Add('    <key>method</key>');
-    Add('    <string>enterprise</string>');
-    Add('    <key>compileBitcode</key>');
-    if (ABitcode) then Add('    <true/>') else Add('    <false/>');
-    if (AAuto) then begin
-      Add('    <key>signingStyle</key>');
-      Add('    <string>automatic</string>');
-    end else begin
-      Add('    <key>provisioningProfiles</key>');
-      Add('    <dict>');
-      Add(Format('        <key>%s</key>', [AProvisionKey]));
-      Add(Format('        <string>%s</string>', [AProvisionValue]));
-      Add('    </dict>');
-      Add('    <key>signingCertificate</key>');
-      Add(Format('    <string>%s</string>', [ACertificate]));
-      Add('    <key>signingStyle</key>');
-      Add('    <string>manual</string>');
-    end;
-    Add('    <key>stripSwiftSymbols</key>');
-    Add('    <true/>');
-    Add('    <key>teamID</key>');
-    Add(Format('    <string>%s</string>', [ATeamId]));
-    Add('    <key>thinning</key>');
-    Add('    <string>&lt;none&gt;</string>');
-    Add('</dict>');
-    Add('</plist>');
-    SaveToFile(path);
-    Free;
-  end;
-end;
-
-procedure generatePlist(ABitcode: Boolean; AProvisionKey: string; AProvisionValue: string; ACertificate: string; ATeamId: string);
-var
-  path: string;
-begin
-  path := GetCurrentDir;
-  if (not path.EndsWith('/')) then path += '/';
-  path += 'export.plist';
-  with TStringList.Create do begin
-    Clear;
-    Add('<?xml version="1.0" encoding="UTF-8"?>');
-    Add('<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">');
-    Add('<plist version="1.0">');
-    Add('<dict>');
-    Add('    <key>method</key>');
-    Add('    <string>app-store</string>');
-    Add('    <key>compileBitcode</key>');
-    if (ABitcode) then Add('    <true/>') else Add('    <false/>');
-    Add('    <key>provisioningProfiles</key>');
-    Add('    <dict>');
-    Add(Format('        <key>%s</key>', [AProvisionKey]));
-    Add(Format('        <string>%s</string>', [AProvisionValue]));
-    Add('    </dict>');
-    Add('    <key>signingCertificate</key>');
-    Add(Format('    <string>%s</string>', [ACertificate]));
-    Add('    <key>signingStyle</key>');
-    Add('    <string>manual</string>');
-    Add('    <key>stripSwiftSymbols</key>');
-    Add('    <true/>');
-    Add('    <key>teamID</key>');
-    Add(Format('    <string>%s</string>', [ATeamId]));
-    Add('    <key>uploadSymbols</key>');
-    Add('    <true/>');
-    Add('</dict>');
-    Add('</plist>');
-    SaveToFile(path);
-    Free;
-  end;
-end;
-
-procedure clean();
-var
-  params: TStringList;
-begin
-  params := TStringList.Create;
-  params.Clear;
-  params.Add('clean');
-  params.Add('-configuration');
-  params.Add('Release');
-  innerRunCmd('xcodebuild', params);
-  params.Free;
-end;
-
-procedure compileProject(buildPath:string; work: string; schemaName: string; projectName: string);
-var
-  params: TStringList;
-begin
-  params := TStringList.Create;
-  params.Clear;
-  params.Add('archive');
-  if (work.EndsWith('.xcodeproj')) then begin
-    params.Add('-project');
-    params.Add(work);
-  end else begin
-    params.Add('-workspace');
-    params.Add(work);
-  end;
-  params.Add('-scheme');
-  params.Add(schemaName);
-  params.Add('-configuration');
-  params.Add('Release');
-  params.Add('-archivePath');
-  params.Add(buildPath + '/' + projectName + '.xcarchive');
-  innerRunCmd('xcodebuild', params);
-  params.Free;
-end;
-
-procedure buildIpa(buildPath: string; projectPath: string; projectName: string; ipaPath: string; plistPath: string);
-var
-  params: TStringList;
-begin
-  params := TStringList.Create;
-  params.Clear;
-  params.Add('-exportArchive');
-  params.Add('-archivePath');
-  params.Add(buildPath + '/' + projectName + '.xcarchive');
-  params.Add('-configuration');
-  params.Add('Release');
-  params.Add('-exportPath');
-  params.Add(ipaPath);
-  params.Add('-exportOptionsPlist');
-  params.Add(plistPath);
-  innerRunCmd('xcodebuild', params);
-  params.Free;
-end;
-
-procedure validateApp(ipaPath: string; schemaName: string; userName: string; userPass: string);
-var
-  params: TStringList;
-begin
-  params := TStringList.Create;
-  params.Clear;
-  params.Add('--validate-app');
-  params.Add('-f');
-  params.Add(ipaPath + '/' + schemaName + '.ipa');
-  params.Add('-u');
-  params.Add(userName);
-  params.Add('-p');
-  params.Add(userPass);
-  params.Add('-t');
-  params.Add('ios');
-  params.Add('--output-format');
-  params.Add('xml');
-  innerRunCmd(ALTOOLPATH, params);
-  params.Free;
-end;
-
-procedure uploadApp(ipaPath: string; schemaName: string; userName: string; userPass: string);
-var
-  params: TStringList;
-begin
-  params := TStringList.Create;
-  params.Clear;
-  params.Add('--upload-app');
-  params.Add('-f');
-  params.Add(ipaPath + '/' + schemaName + '.ipa');
-  params.Add('-u');
-  params.Add(userName);
-  params.Add('-p');
-  params.Add(userPass);
-  params.Add('-t');
-  params.Add('ios');
-  params.Add('--output-format');
-  params.Add('xml');
-  innerRunCmd(ALTOOLPATH, params);
-  params.Free;
-end;
-
-procedure uploadPgyer(ipaPath: string; schemaName: string; ukey: string; apikey: string);
-const
-  UPLOAD_URL = 'http://www.pgyer.com/apiv1/app/upload';
-var
-  params: TStringList;
-  ss: TStringStream;
-  logstr: string;
-begin
-  params := TStringList.Create;
-  params.Add(Format('uKey=%s', [ukey]));
-  params.Add(Format('_api_key=%s', [apikey]));
-  params.Add('publishRange=2');
-  ss := TStringStream.Create('');
-  with TFPHTTPClient.Create(nil) do begin
-    try
-      FileFormPost(UPLOAD_URL, params, 'file', ipaPath + '/' + schemaName + '.ipa', ss);
-    except
-      on e: Exception do begin
-        WriteLn('Upload error: ' + e.Message);
-      end;
-    end;
-    Free;
-  end;
-  logstr:= ss.DataString;
-  WriteLn(logstr);
-  ss.Free;
-  params.Free;
-end;
-
-procedure uploadFirIcon(iconPath: string; key: string; token: string; url: string);
-var
-  ss: TStringStream;
-  params: TStringList;
-begin
-  with TFPHTTPClient.Create(nil) do begin
-    ss := TStringStream.Create('');
-    params := TStringList.Create;
-    params.Add(Format('key=%s', [key]));
-    params.Add(Format('token=%s', [token]));
-    try
-      FileFormPost(url, params, 'file', iconPath, ss);
-      WriteLn(ss.DataString);
-    except
-      on E: Exception do WriteLn('Upload Icon Error: ' + E.Message);
-    end;
-    params.Free;
-    ss.Free;
-    Free;
-  end;
-end;
-
-procedure extractInfoPlist(plistPath: string; out versionCode: Integer; out versionName: string);
-var
-  sl: TStringList;
-  i: Integer;
-begin
-  sl := TStringList.Create;
-  sl.LoadFromFile(plistPath);
-  for i:= 0 to sl.Count - 1 do begin
-    if (sl[i].Contains('<key>CFBundleShortVersionString</key>')) then begin
-      versionName:= sl[i + 1].Replace('<string>', '').Replace('</string>', '').Trim;
-    end;
-    if (sl[i].Contains('<key>CFBundleVersion</key>')) then begin
-      versionCode:= StrToIntDef(sl[i + 1].Replace('<string>', '').Replace('</string>', '').Trim, 0);
-    end;
-  end;
-  sl.Free;
-end;
-
-procedure uploadFirIpa(ipaPath: string; schemeName: string; key: string; token: string; url: string; plistPath: string);
-var
-  vCode: Integer;
-  vName: string;
-  ss: TStringStream;
-  params: TStringList;
-begin
-  extractInfoPlist(plistPath, vCode, vName);
-  with TFPHTTPClient.Create(nil) do begin
-    ss := TStringStream.Create('');
-    params := TStringList.Create;
-    params.Add(Format('key=%s', [key]));
-    params.Add(Format('token=%s', [token]));
-    params.Add(Format('x:name=%s', [schemeName]));
-    params.Add(Format('x:version=%s', [vName]));
-    params.Add(Format('x:build=%d', [vCode]));
-    params.Add('x:release_type=Inhouse');
-    try
-      FileFormPost(url, params, 'file', ipaPath, ss);
-      WriteLn(ss.DataString);
-    except
-      on E: Exception do WriteLn('Upload IPA Error: ' + E.Message);
-    end;
-    params.Free;
-    ss.Free;
-    Free;
-  end;
-end;
-
-procedure uploadFir(ipaPath: string; iconPath: string; schemeName: string; bundleId: string; apiToken: string; plistPath: string);
-var
-  ss: TStringStream;
-  retjson: string = '';
-  json: TJSONObject = nil;
-  jCertIcon: TJSONObject;
-  jCertBinary: TJSONObject;
-  parser: TJSONParser = nil;
-begin
-  with TFPHTTPClient.Create(nil) do begin
-    AddHeader('Content-Type', 'application/json');
-    ss := TStringStream.Create(Format('{"type":"ios", "bundle_id":"%s", "api_token":"%s"}', [bundleId, apiToken]));
-    RequestBody := ss;
-    try
-      retjson := Post('http://api.fir.im/apps');
-    except
-    end;
-    ss.Free;
-    Free;
-  end;
-  if (retjson = '') or (retjson.Contains('errors')) then begin
-    WriteLn('Error: ' + retjson);
-    Exit;
-  end;
-  try
-    try
-      parser := TJSONParser.Create(retjson, [joUTF8]);
-      json := TJSONObject(parser.Parse);
-      jCertIcon := json.Objects['cert'].Objects['icon'];
-      uploadFirIcon(iconPath, jCertIcon.Strings['key'], jCertIcon.Strings['token'], jCertIcon.Strings['upload_url']);
-      jCertBinary := json.Objects['cert'].Objects['binary'];
-      uploadFirIpa(ipaPath + '/' + schemeName + '.ipa', schemeName, jCertBinary.Strings['key'], jCertBinary.Strings['token'], jCertBinary.Strings['upload_url'], plistPath);
-    except
-    end;
-  finally
-    if (json <> nil) then json.Free;
-    if (parser <> nil) then parser.Free;
-  end;
-end;
-
-procedure writeHelp();
-begin
-  WriteLn('Usage: iospublisher (v1.0.9) / Scarlett');
-  WriteLn('    iospublisher init/build [appstore/pgyer/enterprise/fir]');
-  WriteLn('');
-  WriteLn('    you must init a project first and fill all parameters in iospub.cfg');
-  WriteLn('');
-  WriteLn('    sample:');
-  WriteLn('');
-  WriteLn('        [Common]');
-  WriteLn('        ProjectFile=Sample.xcworkspace');
-  WriteLn('        ProjectName=Sample');
-  WriteLn('        SchemeName=MySample');
-  WriteLn('        EnableBitcode=1');
-  WriteLn('');
-  WriteLn('        [AppStore]');
-  WriteLn('        ProvisionKey=ProvisionKey');
-  WriteLn('        ProvisionValue=ProvisionValue');
-  WriteLn('        Certificate=iPhone Distribution');
-  WriteLn('        TeamID=1234567890');
-  WriteLn('        Account=apple@apple.com');
-  WriteLn('        Password=password');
-  WriteLn('');
-  WriteLn('        [Pgyer]');
-  WriteLn('        ProvisionKey=ProvisionKey');
-  WriteLn('        ProvisionValue=ProvisionValue');
-  WriteLn('        Certificate=iPhone Distribution');
-  WriteLn('        TeamID=1234567890');
-  WriteLn('        Auto=0');
-  WriteLn('        UKey=uKey');
-  WriteLn('        ApiKey=apiKey');
-  WriteLn('');
-  WriteLn('        [Enterprise]');
-  WriteLn('        ProvisionKey=ProvisionKey');
-  WriteLn('        ProvisionValue=ProvisionValue');
-  WriteLn('        Certificate=iPhone Distribution');
-  WriteLn('        TeamID=1234567890');
-  WriteLn('        Auto=0');
-  WriteLn('');
-  WriteLn('        [Fir]');
-  WriteLn('        ProvisionKey=ProvisionKey');
-  WriteLn('        ProvisionValue=ProvisionValue');
-  WriteLn('        Certificate=iPhone Distribution');
-  WriteLn('        TeamID=1234567890');
-  WriteLn('        Auto=0');
-  WriteLn('        InfoPList=sample/info.plist');
-  WriteLn('        Icon=sample/sample.png');
-  WriteLn('        BundleID=com.sample.ios');
-  WriteLn('        ApiToken=apitoken');
-
-end;
+  cthreads, Classes, sysutils, process, modulecfg, moduleCommand,
+  module3rdUpload, modulePlist, moduleMisc;
 
 var
 
   cmd: string;
   up: string;
-  cfg: TIniFile;
 
   currDir: string;
   ipaPath: string;
@@ -450,13 +32,14 @@ var
   iconPath: string;
   infoPlist: string;
 begin
-  if (not isUnderProjectPath()) then begin
-    WriteLn('iOS Pusblisher must be run under an iOS project.');
-    Exit;
-  end;
 
   if (ParamCount <> 1) and (ParamCount <> 2) then begin
     writeHelp();
+    Exit;
+  end;
+
+  if (not isUnderProjectPath()) then begin
+    WriteLn('iOS Pusblisher must be run under an iOS project.');
     Exit;
   end;
 
@@ -467,51 +50,7 @@ begin
   end;
 
   if (cmd = 'init') then begin
-    with TStringList.Create do begin
-      Add('[Common]');
-      Add('ProjectFile=');
-      Add('ProjectName=');
-      Add('SchemeName=');
-      Add('EnableBitcode=');
-      Add('');
-      Add('[AppStore]');
-      Add('ProvisionKey=');
-      Add('ProvisionValue=');
-      Add('Certificate=');
-      Add('TeamID=');
-      Add('Account=');
-      Add('Password=');
-      Add('');
-      Add('[Pgyer]');
-      Add('ProvisionKey=');
-      Add('ProvisionValue=');
-      Add('Certificate=');
-      Add('TeamID=');
-      Add('Auto=');
-      Add('UKey=');
-      Add('ApiKey=');
-      Add('');
-      Add('[Enterprise]');
-      Add('ProvisionKey=');
-      Add('ProvisionValue=');
-      Add('Certificate=');
-      Add('TeamID=');
-      Add('Auto=');
-      Add('');
-      Add('[Fir]');
-      Add('ProvisionKey=');
-      Add('ProvisionValue=');
-      Add('Certificate=');
-      Add('TeamID=');
-      Add('Auto=');
-      Add('InfoPList=');
-      Add('Icon=');
-      Add('BundleID=');
-      Add('ApiToken=');
-      Add('');
-      SaveToFile('iospub.cfg');
-      Free;
-    end;
+    generateDefaultConfig();
     Exit;
   end;
 
@@ -521,28 +60,28 @@ begin
   end;
 
   up:= ParamStr(2);
-  cfg := TIniFile.Create('iospub.cfg');
+  ioscfg.loadCfg('iospub.cfg');
   currDir:= GetCurrentDir;
   if (not currDir.EndsWith('/')) then currDir += '/';
   ipaPath:= currDir + 'IPADIR';
   if (not DirectoryExists(ipaPath)) then ForceDirectories(ipaPath);
-  projectFile:= cfg.ReadString('Common', 'ProjectFile', '');
+  projectFile:= ioscfg.ProjFile;
   projectPath:= GetCurrentDir;
-  projectName:= cfg.ReadString('Common', 'ProjectName', '');
-  schemaName:= cfg.ReadString('Common', 'SchemeName', '');
+  projectName:= ioscfg.ProjName;
+  schemaName:= ioscfg.SchemeName;
   buildPath:= projectPath + '/build';
   plistPath:= projectPath + '/export.plist';
 
   if (up = 'appstore') then begin
     generatePlist(
-      cfg.ReadInteger('Common', 'EnableBitcode', 0) = 1,
-      cfg.ReadString('AppStore', 'ProvisionKey', ''),
-      cfg.ReadString('AppStore', 'ProvisionValue', ''),
-      cfg.ReadString('AppStore', 'Certificate', ''),
-      cfg.ReadString('AppStore', 'TeamID', '')
+      ioscfg.BitCode,
+      ioscfg.AppStoreProvisionKey,
+      ioscfg.AppStoreProvisionValue,
+      ioscfg.AppStoreCertificate,
+      ioscfg.AppStoreTeamId
     );
-    userName:= cfg.ReadString('AppStore', 'Account', '');
-    userPass:= cfg.ReadString('AppStore', 'Password', '');
+    userName:= ioscfg.AppStoreAccount;
+    userPass:= ioscfg.AppStorePassword;
     clean();
     compileProject(buildPath, projectFile, schemaName, projectName);
     buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
@@ -550,50 +89,49 @@ begin
     uploadApp(ipaPath, schemaName, userName, userPass);
   end else if (up = 'pgyer') then begin
     generatePlistEnterprise(
-      cfg.ReadInteger('Common', 'EnableBitcode', 0) = 1,
-      cfg.ReadString('Pgyer', 'ProvisionKey', ''),
-      cfg.ReadString('Pgyer', 'ProvisionValue', ''),
-      cfg.ReadString('Pgyer', 'Certificate', ''),
-      cfg.ReadString('Pgyer', 'TeamID', ''),
-      cfg.ReadInteger('Pgyer', 'Auto', 0) = 1
+      ioscfg.BitCode,
+      ioscfg.PgyerProvisionKey,
+      ioscfg.PgyerProvisionValue,
+      ioscfg.PgyerCertificate,
+      ioscfg.PgyerTeamId,
+      ioscfg.PgyerAutoSign
     );
-    ukey:= cfg.ReadString('Pgyer', 'UKey', '');
-    apikey:= cfg.ReadString('Pgyer', 'ApiKey', '');
+    ukey:= ioscfg.PgyerUKey;
+    apikey:= ioscfg.PgyerApiKey;
     clean();
     compileProject(buildPath, projectFile, schemaName, projectName);
     buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
     uploadPgyer(ipaPath, schemaName, ukey, apikey);
   end else if (up = 'enterprise') then begin
     generatePlistEnterprise(
-      cfg.ReadInteger('Common', 'EnableBitcode', 0) = 1,
-      cfg.ReadString('Enterprise', 'ProvisionKey', ''),
-      cfg.ReadString('Enterprise', 'ProvisionValue', ''),
-      cfg.ReadString('Enterprise', 'Certificate', ''),
-      cfg.ReadString('Enterprise', 'TeamID', ''),
-      cfg.ReadInteger('Enterprise', 'Auto', 0) = 1
+      ioscfg.BitCode,
+      ioscfg.EnterpriseProvisionKey,
+      ioscfg.EnterpriseProvisionValue,
+      ioscfg.EnterpriseCertificate,
+      ioscfg.EnterpriseTeamId,
+      ioscfg.EnterpriseAutoSign
     );
     clean();
     compileProject(buildPath, projectFile, schemaName, projectName);
     buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
   end else if (up = 'fir') then begin
     generatePlistEnterprise(
-      cfg.ReadInteger('Common', 'EnableBitcode', 0) = 1,
-      cfg.ReadString('Fir', 'ProvisionKey', ''),
-      cfg.ReadString('Fir', 'ProvisionValue', ''),
-      cfg.ReadString('Fir', 'Certificate', ''),
-      cfg.ReadString('Fir', 'TeamID', ''),
-      cfg.ReadInteger('Fir', 'Auto', 0) = 1
+      ioscfg.BitCode,
+      ioscfg.FirProvisionKey,
+      ioscfg.FirProvisionValue,
+      ioscfg.FirCertificate,
+      ioscfg.FirTeamId,
+      ioscfg.FirAutoSign
     );
     clean();
     compileProject(buildPath, projectFile, schemaName, projectName);
     buildIpa(buildPath, projectPath, projectName, ipaPath, plistPath);
-    bundleId:= cfg.ReadString('Fir', 'BundleID', '');
-    apitoken:= cfg.ReadString('Fir', 'ApiToken', '');
-    infoPlist:= cfg.ReadString('Fir', 'InfoPList', '');
-    iconPath:= cfg.ReadString('Fir', 'Icon', '');
+    bundleId:= ioscfg.FirBundleId;
+    apitoken:= ioscfg.FirApiToken;
+    infoPlist:= ioscfg.FirInfoPlist;
+    iconPath:= ioscfg.FirIcon;
     uploadFir(ipaPath, iconPath, schemaName, bundleId, apitoken, infoPlist);
   end;
 
-  cfg.Free;
 end.
 

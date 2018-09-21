@@ -36,8 +36,10 @@ $ iospublisher build enterprise
 
 为了更简便的完成配置，可以使用 GUI 工具，编译后直接双击使用即可
 
+编译时需要依赖 ```myct``` 项目，请自行在 ```fpccmd.cfg``` 内维护该依赖的路径
+
 ```
-$ fpccmd M iospubgui.ppr C
+$ fpccmd M iospubgui.ppr O
 ```
 
 ![](https://github.com/rarnu/iospublisher/blob/master/Screenshot.png)
