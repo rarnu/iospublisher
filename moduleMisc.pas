@@ -86,7 +86,7 @@ end;
 
 procedure writeHelp();
 begin
-  WriteLn('Usage: iospublisher (v2.0.0) / Scarlett');
+  WriteLn('Usage: iospublisher (v2.0.1) / Scarlett');
   WriteLn('');
   WriteLn('    iospublisher init/build [appstore/pgyer/enterprise/fir]');
   WriteLn('');

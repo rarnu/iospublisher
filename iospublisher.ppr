@@ -4,7 +4,7 @@ program iospublisher;
 
 uses
   cthreads, Classes, sysutils, process, modulecfg, moduleCommand,
-  module3rdUpload, modulePlist, moduleMisc;
+  module3rdUpload, modulePlist, moduleMisc, FileUtil;
 
 var
 
@@ -64,7 +64,10 @@ begin
   currDir:= GetCurrentDir;
   if (not currDir.EndsWith('/')) then currDir += '/';
   ipaPath:= currDir + 'IPADIR';
-  if (not DirectoryExists(ipaPath)) then ForceDirectories(ipaPath);
+  if (DirectoryExists(ipaPath)) then begin
+     DeleteDirectory(ipaPath, False);
+  end;
+  ForceDirectories(ipaPath);
   projectFile:= ioscfg.ProjFile;
   projectPath:= GetCurrentDir;
   projectName:= ioscfg.ProjName;
